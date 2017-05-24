@@ -63,5 +63,6 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
     @Override
     public void onTrackChanged(String track) {
         getSupportActionBar().setTitle(par.getParTitle() + " " + track);
+        simpleExoPlayerView.showController();
     }
 }
