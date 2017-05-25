@@ -1,6 +1,7 @@
 package org.vedibarta.app.expandable;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
@@ -9,6 +10,8 @@ import com.thoughtbot.expandablerecyclerview.viewholders.ChildViewHolder;
 
 import org.vedibarta.app.model.Par;
 import org.vedibarta.app.ui.PlayerActivity;
+
+import static org.vedibarta.app.ui.PlayerActivity.EXTRA_PARASHA;
 
 /**
  * Created by e560 on 15/05/17.
@@ -33,7 +36,9 @@ public class ParashaViewHolder extends ChildViewHolder {
         Par parasha = (Par)v.getTag();
         if (parasha != null) {
             Intent intent = new Intent(v.getContext(), PlayerActivity.class);
-            intent.putExtra(PlayerActivity.EXTRA_PARASHA, parasha);
+            Bundle b = new Bundle();
+            b.putParcelable(EXTRA_PARASHA, parasha);
+            intent.putExtra("bundle", b);
             v.getContext().startActivity(intent);
         }
     }

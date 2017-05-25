@@ -1,6 +1,13 @@
 package org.vedibarta.app.ui;
 
+import android.content.ComponentName;
 import android.os.Bundle;
+import android.os.RemoteException;
+import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -11,9 +18,8 @@ import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
 
 import org.vedibarta.app.MyApplication;
 import org.vedibarta.app.OnTrackChange;
-import org.vedibarta.app.ParashotHelper;
+import org.vedibarta.app.PlayService;
 import org.vedibarta.app.R;
-import org.vedibarta.app.model.Par;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -29,9 +35,9 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
     SimpleExoPlayerView simpleExoPlayerView;
     @BindView(R.id.progress_bar)
     ProgressBar progressBar;
-    private Par par;
-    private Disposable trackSubscription;
+    private Disposable titleSubscription;
     private Disposable loadingSubscription;
+    private MediaBrowserCompat mediaBrowser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,29 +46,115 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
         ButterKnife.bind(this);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        //noinspection ConstantConditions
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
         SimpleExoPlayer player = getPlayerManager().getPlayer();
         simpleExoPlayerView.setPlayer(player);
-        Par parasha = getIntent().getParcelableExtra(EXTRA_PARASHA);
-        Observable<String> trackObservable = MyApplication.getPlayerManager().preparePlayer(parasha);
-        trackSubscription = trackObservable.subscribe(this::onTrackChanged);
-        this.par = (parasha != null) ? parasha : ParashotHelper.parList.get(0);
-        getSupportActionBar().setTitle(par.getParTitle());
+//        Par parasha = getIntent().getParcelableExtra(EXTRA_PARASHA);
+        Observable<String> titleObservable = MyApplication.getPlayerManager().getTitleObservable();
+        titleSubscription = titleObservable.subscribe(this::onTrackChanged);
+//        getSupportActionBar().setTitle(parasha.getParTitle());
         loadingSubscription = MyApplication.getPlayerManager().getLoadingObservable()
-                .subscribe(loading -> progressBar.setVisibility(loading ? View.VISIBLE: View.GONE));
+                .subscribe(loading -> progressBar.setVisibility(loading ? View.VISIBLE : View.GONE));
+        setMediaBrowser();
+    }
+
+    private void setMediaBrowser() {
+        mediaBrowser = new MediaBrowserCompat(this,
+                new ComponentName(this, PlayService.class),
+                mConnectionCallbacks,
+                null); // optional Bundle
+    }
+
+
+    private void setController() {
+        MediaControllerCompat mediaController = MediaControllerCompat.getMediaController(this);
+        // Display the initial state
+        MediaMetadataCompat metadata = mediaController.getMetadata();
+        PlaybackStateCompat pbState = mediaController.getPlaybackState();
+        // Register a Callback to stay in sync
+        mediaController.registerCallback(controllerCallback);
+    }
+
+    private void onPauseClicked(){
+        int pbState = MediaControllerCompat.getMediaController(this).getPlaybackState().getState();
+        if (pbState == PlaybackStateCompat.STATE_PLAYING) {
+            MediaControllerCompat.getMediaController(this).getTransportControls().pause();
+        } else {
+            MediaControllerCompat.getMediaController(this).getTransportControls().play();
+        }
+    }
+
+    MediaControllerCompat.Callback controllerCallback =
+            new MediaControllerCompat.Callback() {
+                @Override
+                public void onMetadataChanged(MediaMetadataCompat metadata) {
+                }
+
+                @Override
+                public void onPlaybackStateChanged(PlaybackStateCompat state) {
+                }
+            };
+
+    MediaBrowserCompat.ConnectionCallback mConnectionCallbacks =
+            new MediaBrowserCompat.ConnectionCallback() {
+                @Override
+                public void onConnected() {
+                    // Get the token for the MediaSession
+                    MediaSessionCompat.Token token = mediaBrowser.getSessionToken();
+                    // Create a MediaControllerCompat
+                    try {
+                        MediaControllerCompat mediaController =
+                                new MediaControllerCompat(PlayerActivity.this, token);
+                        MediaControllerCompat.setMediaController(PlayerActivity.this, mediaController);
+                        setController();
+                        MediaControllerCompat.getMediaController(PlayerActivity.this)
+                                .getTransportControls().playFromMediaId("parashs", getIntent().getBundleExtra("bundle"));
+
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+                @Override
+                public void onConnectionSuspended() {
+                    // The Service has crashed. Disable transport controls until it automatically reconnects
+                }
+
+                @Override
+                public void onConnectionFailed() {
+                    // The Service has refused our connection
+                }
+            };
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mediaBrowser.connect();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // (see "stay in sync with the MediaSession")
+        if (MediaControllerCompat.getMediaController(this) != null) {
+            MediaControllerCompat.getMediaController(this).unregisterCallback(controllerCallback);
+        }
+        mediaBrowser.disconnect();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        trackSubscription.dispose();
+        titleSubscription.dispose();
         loadingSubscription.dispose();
     }
 
     @Override
-    public void onTrackChanged(String track) {
-        getSupportActionBar().setTitle(par.getParTitle() + " " + track);
+    public void onTrackChanged(String title) {
+        getSupportActionBar().setTitle(title);
         simpleExoPlayerView.showController();
     }
 }

@@ -3,6 +3,7 @@ package org.vedibarta.app;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
+import android.support.v4.media.MediaBrowserCompat;
 import android.util.Log;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -41,7 +42,9 @@ import io.reactivex.subjects.PublishSubject;
  * Created by e560 on 23/05/17.
  */
 
-public class PlayerManager implements ExoPlayer.EventListener{
+public class PlayerManager implements ExoPlayer.EventListener {
+
+    private MediaBrowserCompat mediaBrowser;
 
     private final SimpleExoPlayer player;
     DefaultBandwidthMeter defaultBandwidthMeter = new DefaultBandwidthMeter();
@@ -51,12 +54,12 @@ public class PlayerManager implements ExoPlayer.EventListener{
     ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
     // This is the MediaSource representing the media to be played.
 
-    private PublishSubject<String> trackObservable = PublishSubject.create();
+    private PublishSubject<String> titleObservable = PublishSubject.create();
     private PublishSubject<Boolean> loadingObservable = PublishSubject.create();
 
     private Par par;
 
-    public PlayerManager(Context context) {
+    public PlayerManager(final Context context) {
         // 1. Create a default TrackSelector
         BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
         TrackSelection.Factory trackSelectionFactory =
@@ -68,14 +71,13 @@ public class PlayerManager implements ExoPlayer.EventListener{
                 Util.getUserAgent(context, "vedibarta"), defaultBandwidthMeter);
         player.setPlayWhenReady(true);
         player.addListener(this);
-
     }
 
     public Observable<String> preparePlayer(Par par) {
         this.par = par;
         // Measures bandwidth during playback. Can be null if not required.
         List<MediaSource> sources = new ArrayList<>();
-        for (Track track : par.getTrackList()){
+        for (Track track : par.getTrackList()) {
             MediaSource audioSource = new ExtractorMediaSource(Uri.parse(ParashotHelper.BASE_URL_MP3
                     + par.getParashUrl()
                     + track.getUrl()),
@@ -86,7 +88,7 @@ public class PlayerManager implements ExoPlayer.EventListener{
         ConcatenatingMediaSource concatenatedSource =
                 new ConcatenatingMediaSource(sources.toArray(new MediaSource[sources.size()]));
         player.prepare(concatenatedSource);
-        return trackObservable;
+        return titleObservable;
     }
 
     @Override
@@ -95,10 +97,10 @@ public class PlayerManager implements ExoPlayer.EventListener{
 
     @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-        for (int i = 0; i < trackSelections.length ; i++){
+        for (int i = 0; i < trackSelections.length; i++) {
             Log.d("TAG", trackSelections.toString());
         }
-        trackObservable.onNext(sendTrackChangeString());
+        titleObservable.onNext(getTrackTitle());
     }
 
     @Override
@@ -108,9 +110,9 @@ public class PlayerManager implements ExoPlayer.EventListener{
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        switch (playbackState){
+        switch (playbackState) {
             case ExoPlayer.STATE_BUFFERING:
-                trackObservable.onNext(sendTrackChangeString());
+                titleObservable.onNext(getTrackTitle());
                 loadingObservable.onNext(true);
                 break;
             default:
@@ -135,12 +137,12 @@ public class PlayerManager implements ExoPlayer.EventListener{
     }
 
     @SuppressLint("DefaultLocale")
-    private String sendTrackChangeString() {
-        return String.format("%d/%d", player.getCurrentWindowIndex() + 1, par.getTrackList().length);
+    private String getTrackTitle() {
+        return String.format("%s %d/%d",par.getParTitle(),  player.getCurrentWindowIndex() + 1, par.getTrackList().length);
     }
 
-    public Observable<String> getTrackObservable(){
-        return trackObservable;
+    public Observable<String> getTitleObservable() {
+        return titleObservable;
     }
 
     public PublishSubject<Boolean> getLoadingObservable() {
@@ -154,4 +156,5 @@ public class PlayerManager implements ExoPlayer.EventListener{
     public SimpleExoPlayer getPlayer() {
         return player;
     }
+
 }
