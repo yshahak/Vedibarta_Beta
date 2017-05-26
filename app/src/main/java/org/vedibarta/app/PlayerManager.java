@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.support.v4.media.MediaBrowserCompat;
 import android.util.Log;
 
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ExoPlayerFactory;
@@ -56,6 +57,7 @@ public class PlayerManager implements ExoPlayer.EventListener {
 
     private PublishSubject<String> titleObservable = PublishSubject.create();
     private PublishSubject<Boolean> loadingObservable = PublishSubject.create();
+    private PublishSubject<String> pauseObservable = PublishSubject.create();
 
     private Par par;
 
@@ -69,7 +71,6 @@ public class PlayerManager implements ExoPlayer.EventListener {
         player = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
         dataSourceFactory = new DefaultDataSourceFactory(context,
                 Util.getUserAgent(context, "vedibarta"), defaultBandwidthMeter);
-        player.setPlayWhenReady(true);
         player.addListener(this);
     }
 
@@ -88,7 +89,54 @@ public class PlayerManager implements ExoPlayer.EventListener {
         ConcatenatingMediaSource concatenatedSource =
                 new ConcatenatingMediaSource(sources.toArray(new MediaSource[sources.size()]));
         player.prepare(concatenatedSource);
+        play();
         return titleObservable;
+    }
+
+    public void play() {
+        player.setPlayWhenReady(true);
+    }
+
+    public void pause() {
+        player.setPlayWhenReady(false);
+        pauseObservable.onNext(getTrackTitle());
+    }
+
+    public void stop() {
+        player.stop();
+    }
+
+    public void next() {
+        Timeline timeline = player.getCurrentTimeline();
+        if (timeline.isEmpty()) {
+            return;
+        }
+        int windowIndex = player.getCurrentWindowIndex();
+        if (windowIndex < timeline.getWindowCount() - 1) {
+            seekTo(windowIndex + 1, C.TIME_UNSET);
+        }
+//        else if (timeline.getWindow(windowIndex, window, false).isDynamic) {
+//            seekTo(windowIndex, C.TIME_UNSET);
+//        }
+    }
+
+    public void previous() {
+        Timeline timeline = player.getCurrentTimeline();
+        if (timeline.isEmpty()) {
+            return;
+        }
+        int windowIndex = player.getCurrentWindowIndex();
+//        timeline.getWindow(windowIndex, window);
+        if (windowIndex > 0 )//&& (player.getCurrentPosition() <= MAX_POSITION_FOR_SEEK_TO_PREVIOUS || (window.isDynamic && !window.isSeekable))) {
+            seekTo(windowIndex - 1, C.TIME_UNSET);
+        }
+
+    private void seekTo(long positionMs) {
+        seekTo(player.getCurrentWindowIndex(), positionMs);
+    }
+
+    private void seekTo(int windowIndex, long positionMs) {
+        player.seekTo(windowIndex, positionMs);
     }
 
     @Override
@@ -138,7 +186,7 @@ public class PlayerManager implements ExoPlayer.EventListener {
 
     @SuppressLint("DefaultLocale")
     private String getTrackTitle() {
-        return String.format("%s %d/%d",par.getParTitle(),  player.getCurrentWindowIndex() + 1, par.getTrackList().length);
+        return String.format("%s %d/%d", par.getParTitle(), player.getCurrentWindowIndex() + 1, par.getTrackList().length);
     }
 
     public Observable<String> getTitleObservable() {
@@ -157,4 +205,7 @@ public class PlayerManager implements ExoPlayer.EventListener {
         return player;
     }
 
+    public Observable<String> getPauseObservable() {
+        return pauseObservable;
+    }
 }

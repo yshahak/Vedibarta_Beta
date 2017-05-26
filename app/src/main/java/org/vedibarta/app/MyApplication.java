@@ -1,6 +1,8 @@
 package org.vedibarta.app;
 
 import android.app.Application;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 
 /**
  * Created by e560 on 23/05/17.
@@ -9,6 +11,7 @@ import android.app.Application;
 public class MyApplication extends Application {
 
     private static MyApplication myApplication;
+    private static Bitmap bitmapForNotification;
     private PlayerManager playerManager;
 
     @Override
@@ -20,5 +23,12 @@ public class MyApplication extends Application {
 
     public static PlayerManager getPlayerManager(){
         return myApplication.playerManager;
+    }
+
+    public static Bitmap getBitmapForNotification() {
+        if (bitmapForNotification == null) {
+            bitmapForNotification = BitmapFactory.decodeResource(myApplication.getResources(), R.drawable.comicks);
+        }
+        return bitmapForNotification;
     }
 }

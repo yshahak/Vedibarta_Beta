@@ -2,4 +2,7 @@
     <string name="app_name">App</string>
     <string name="title_activity_player">PlayerActivity</string>
     <string name="pause">pause</string>
+    <string name="next">next</string>
+    <string name="previous">previous</string>
+    <string name="play">play</string>
 </resources>

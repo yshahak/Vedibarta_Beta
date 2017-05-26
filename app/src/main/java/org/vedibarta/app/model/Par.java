@@ -3,12 +3,14 @@ package org.vedibarta.app.model;
 import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.v4.media.MediaDescriptionCompat;
 
 /**
  * Created by e560 on 11/05/17.
  */
 
 public class Par implements Parcelable {
+    private MediaDescriptionCompat description;
     private String parTitle;
     private String size;
     private String dedication;
@@ -16,6 +18,7 @@ public class Par implements Parcelable {
     private String englishName;
     private String parashUrl;
     private Track[] trackList;
+
 
 
     public Par(String bookTitle, String size, String dedication, String zipFile
@@ -34,6 +37,11 @@ public class Par implements Parcelable {
             trackList[index] = trk;
             index++;
         }
+        this.description =
+                new MediaDescriptionCompat.Builder()
+                        .setTitle(parTitle)
+                        .build();
+
     }
 
     public String getParTitle() {
@@ -64,6 +72,10 @@ public class Par implements Parcelable {
         return trackList;
     }
 
+    public MediaDescriptionCompat getDescription() {
+        return description;
+    }
+
 
     @Override
     public int describeContents() {
@@ -72,6 +84,7 @@ public class Par implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeParcelable(this.description, flags);
         dest.writeString(this.parTitle);
         dest.writeString(this.size);
         dest.writeString(this.dedication);
@@ -82,6 +95,7 @@ public class Par implements Parcelable {
     }
 
     protected Par(Parcel in) {
+        this.description = in.readParcelable(MediaDescriptionCompat.class.getClassLoader());
         this.parTitle = in.readString();
         this.size = in.readString();
         this.dedication = in.readString();

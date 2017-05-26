@@ -1,6 +1,8 @@
 package org.vedibarta.app.ui;
 
 import android.content.ComponentName;
+import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.support.v4.media.MediaBrowserCompat;
@@ -21,6 +23,8 @@ import org.vedibarta.app.OnTrackChange;
 import org.vedibarta.app.PlayService;
 import org.vedibarta.app.R;
 
+import java.util.Random;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.Observable;
@@ -39,6 +43,7 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
     private Disposable loadingSubscription;
     private MediaBrowserCompat mediaBrowser;
 
+    private int[] intArtsArr = {R.drawable.comm1, R.drawable.comm2, R.drawable.comm3};
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,7 +61,15 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
 //        getSupportActionBar().setTitle(parasha.getParTitle());
         loadingSubscription = MyApplication.getPlayerManager().getLoadingObservable()
                 .subscribe(loading -> progressBar.setVisibility(loading ? View.VISIBLE : View.GONE));
+        simpleExoPlayerView.setDefaultArtwork(BitmapFactory.decodeResource(getResources()
+                , intArtsArr[new Random().nextInt(intArtsArr.length)]));
         setMediaBrowser();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
     }
 
     private void setMediaBrowser() {
@@ -108,8 +121,11 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
                                 new MediaControllerCompat(PlayerActivity.this, token);
                         MediaControllerCompat.setMediaController(PlayerActivity.this, mediaController);
                         setController();
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(EXTRA_PARASHA, getIntent().getParcelableExtra(EXTRA_PARASHA));
+
                         MediaControllerCompat.getMediaController(PlayerActivity.this)
-                                .getTransportControls().playFromMediaId("parashs", getIntent().getBundleExtra("bundle"));
+                                .getTransportControls().playFromMediaId("parashs", bundle);
 
                     } catch (RemoteException e) {
                         e.printStackTrace();
