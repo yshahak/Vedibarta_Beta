@@ -1,6 +1,8 @@
 package org.vedibarta.app.expandable;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.view.View;
 import android.widget.TextView;
 
@@ -26,7 +28,9 @@ public class ParashaViewHolder extends ChildViewHolder {
         RxView.clicks(label).subscribe(aVoid ->onClick(label));
     }
 
-    public void onBind(Par parasha) {
+    public void onBind(Par parasha, boolean isCurrentParasha) {
+        itemView.setBackgroundColor(isCurrentParasha ? Color.parseColor("#3F51B588") : Color.parseColor("#ffffff"));
+        label.setTypeface(null, isCurrentParasha ? Typeface.BOLD : Typeface.NORMAL);
         label.setText(parasha.getParTitle());
         label.setTag(parasha);
     }

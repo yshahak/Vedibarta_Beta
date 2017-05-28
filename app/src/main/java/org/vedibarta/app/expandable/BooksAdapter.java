@@ -7,8 +7,8 @@ import android.view.ViewGroup;
 import com.thoughtbot.expandablerecyclerview.ExpandableRecyclerViewAdapter;
 import com.thoughtbot.expandablerecyclerview.models.ExpandableGroup;
 
-import org.vedibarta.app.model.Par;
 import org.vedibarta.app.R;
+import org.vedibarta.app.model.Par;
 
 import java.util.List;
 
@@ -18,8 +18,11 @@ import java.util.List;
 
 public class BooksAdapter extends ExpandableRecyclerViewAdapter<BookViewHolder, ParashaViewHolder> {
 
-    public BooksAdapter(List<? extends ExpandableGroup> groups) {
+    final Par currentParasha;
+
+    public BooksAdapter(List<? extends ExpandableGroup> groups, Par par) {
         super(groups);
+        currentParasha = par;
     }
 
     @Override
@@ -37,7 +40,7 @@ public class BooksAdapter extends ExpandableRecyclerViewAdapter<BookViewHolder, 
     @Override
     public void onBindChildViewHolder(ParashaViewHolder holder, int flatPosition, ExpandableGroup group, int childIndex) {
         final Par parasha = (Par) group.getItems().get(childIndex);
-        holder.onBind(parasha);
+        holder.onBind(parasha, parasha.equals(currentParasha));
     }
 
     @Override

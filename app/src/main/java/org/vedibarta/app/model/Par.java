@@ -116,4 +116,9 @@ public class Par implements Parcelable {
             return new Par[size];
         }
     };
+
+    @Override
+    public String toString() {
+        return "title=" + getParTitle();
+    }
 }

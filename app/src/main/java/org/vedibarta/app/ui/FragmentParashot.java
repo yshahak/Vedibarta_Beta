@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 
 import org.vedibarta.app.ParashotHelper;
 import org.vedibarta.app.R;
+import org.vedibarta.app.calendar.CalendarHelper;
 import org.vedibarta.app.expandable.BookGroup;
 import org.vedibarta.app.expandable.BooksAdapter;
 
@@ -46,9 +47,10 @@ public class FragmentParashot extends Fragment {
         DividerItemDecoration mDividerItemDecoration = new DividerItemDecoration(getContext(),
                 LinearLayoutManager.VERTICAL);
         recyclerView.addItemDecoration(mDividerItemDecoration);
-        BooksAdapter adapter = new BooksAdapter(books);
+        BooksAdapter adapter = new BooksAdapter(books, ParashotHelper.parList.get(CalendarHelper.getWeekParashaIndex()));
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
+        getActivity().getActionBar().setTitle(ParashotHelper.parList.get(CalendarHelper.getWeekParashaIndex()).getParTitle());
         return view;
     }
 }

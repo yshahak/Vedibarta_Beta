@@ -108,12 +108,6 @@ public class PlayService extends MediaBrowserServiceCompat {
     }
 
     private void setMediaPlaybackState(int state) {
-//        PlaybackStateCompat.Builder playbackstateBuilder = new PlaybackStateCompat.Builder();
-//        if (state == PlaybackStateCompat.STATE_PLAYING) {
-//            playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PAUSE);
-//        } else {
-//            playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PLAY);
-//        }
         mStateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 0);
         mediaSession.setPlaybackState(mStateBuilder.build());
     }
