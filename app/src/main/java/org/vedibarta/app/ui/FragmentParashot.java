@@ -3,6 +3,7 @@ package org.vedibarta.app.ui;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -50,7 +51,7 @@ public class FragmentParashot extends Fragment {
         BooksAdapter adapter = new BooksAdapter(books, ParashotHelper.parList.get(CalendarHelper.getWeekParashaIndex()));
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
-        getActivity().getActionBar().setTitle(ParashotHelper.parList.get(CalendarHelper.getWeekParashaIndex()).getParTitle());
+        ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle(ParashotHelper.parList.get(CalendarHelper.getWeekParashaIndex()).getParTitle());
         return view;
     }
 }
