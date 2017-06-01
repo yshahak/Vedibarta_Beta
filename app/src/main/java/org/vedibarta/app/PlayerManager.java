@@ -74,14 +74,20 @@ public class PlayerManager implements ExoPlayer.EventListener {
         player.addListener(this);
     }
 
-    public Observable<String> preparePlayer(Par par) {
+    public Observable<String> preparePlayer(Context context, Par par) {
         this.par = par;
         // Measures bandwidth during playback. Can be null if not required.
         List<MediaSource> sources = new ArrayList<>();
         for (Track track : par.getTrackList()) {
-            MediaSource audioSource = new ExtractorMediaSource(Uri.parse(ParashotHelper.BASE_URL_MP3
-                    + par.getParashUrl()
-                    + track.getUrl()),
+            String source;
+            if (ParashotHelper.checkIfTrackDownloaded(context, par.getParTitle(), track.getUrl())){
+                source = ParashotHelper.getTrackSourceFromDevice(context,par.getParTitle(), track.getUrl());
+            } else {
+                source = ParashotHelper.BASE_URL_MP3
+                        + par.getParashUrl()
+                        + track.getUrl();
+            }
+            MediaSource audioSource = new ExtractorMediaSource(Uri.parse(source),
                     dataSourceFactory, extractorsFactory, null, null);
             sources.add(audioSource);
         }

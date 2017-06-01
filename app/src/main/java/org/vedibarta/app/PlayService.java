@@ -124,7 +124,7 @@ public class PlayService extends MediaBrowserServiceCompat {
             }
             mediaSession.setActive(true);
             PlayService.this.par = par;
-            MyApplication.getPlayerManager().preparePlayer(par);
+            MyApplication.getPlayerManager().preparePlayer(getApplicationContext(), par);
             startService(new Intent(PlayService.this, PlayService.class));
             onPlay();
         }

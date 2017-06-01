@@ -1,9 +1,11 @@
 package org.vedibarta.app;
 
+import android.content.Context;
 import android.util.SparseArray;
 
 import org.vedibarta.app.model.Par;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +17,7 @@ public class ParashotHelper {
 
     public static final String BASE_URL_ZIP = "http://www.vedibarta.org/Rashi_Tora_ZIP/";
     public static final String BASE_URL_MP3 = "http://www.vedibarta.org/Rashi_Tora_MP3/";
+    public static final Object PARASHOT_FOLDER = "PARASHOT";
 
     static String dedication0 = "עדיין לא הוקדש", dedication5;
     public static List<Par> parList = new ArrayList<>();
@@ -1034,4 +1037,14 @@ public class ParashotHelper {
     }
 
 
+    public static boolean checkIfTrackDownloaded(Context context, String parTitle, String track) {
+        File parFolder = new File(context.getFilesDir() + File.separator + PARASHOT_FOLDER, parTitle);
+        if (!parFolder.exists()) parFolder.mkdirs();
+        File file = new File(parFolder, track);
+        return file.exists() && file.canRead() && file.length() > 0;
+    }
+
+    public static String getTrackSourceFromDevice(Context context, String parTitle, String track) {
+        return context.getFilesDir() + File.separator + PARASHOT_FOLDER+ File.separator + parTitle + File.separator + track;
+    }
 }

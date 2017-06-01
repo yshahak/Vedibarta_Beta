@@ -2,10 +2,7 @@ package org.vedibarta.app;
 
 import android.content.Context;
 import android.net.Uri;
-import android.os.Environment;
 import android.util.Log;
-
-import org.vedibarta.app.model.Par;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -17,42 +14,47 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import io.reactivex.Observable;
+import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
 import okio.BufferedSink;
+import okio.BufferedSource;
 import okio.Okio;
 import retrofit2.Response;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
+import retrofit2.http.Streaming;
+
+import static org.vedibarta.app.ParashotHelper.PARASHOT_FOLDER;
 
 /**
  * Created by Yaakov Shahak on 28/05/2017.
  */
 
 public class RetrofitHelper {
-    public static final String BASE_URL_ZIP = "http://www.vedibarta.org/Rashi_Tora_ZIP/";
     private static final String TAG = RetrofitHelper.class.getSimpleName();
-    private static final Object PARASHOT_FOLDER = "PARASHOT";
 
     public interface ApiService {
+        @Streaming
         @GET("{par}")
-        Observable<Response<ResponseBody>> download(@Path("par") String par);
+            Observable<Response<ResponseBody>> download(@Path("par") String par);
     }
 
 
 
-    public static Observable<File> saveFile(Response<ResponseBody> response, Par par) {
+    public static Observable<File> saveFile(Context context, Response<ResponseBody> response, String parName, String trackUrl) {
         return Observable.create(subscriber -> {
             try {
-                // you can access headers of response
-                Log.d(TAG, response.message());
-                File tempZipFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsoluteFile(), par.getParTitle() + ".zip");
+                File parFolder = new File(context.getFilesDir() + File.separator + PARASHOT_FOLDER, parName);
+                if (!parFolder.exists()) parFolder.mkdirs();
 
-                BufferedSink sink = Okio.buffer(Okio.sink(tempZipFile));
+                File file = new File(parFolder, trackUrl);
+
+                BufferedSink sink = Okio.buffer(Okio.sink(file));
                 // you can access body of response
                 sink.writeAll(response.body().source());
                 sink.close();
-                subscriber.onNext(tempZipFile);
-                subscriber.onComplete();
+                subscriber.onNext(file);
+//                subscriber.onComplete();
             } catch (IOException e) {
                 e.printStackTrace();
                 subscriber.onError(e);
@@ -134,6 +136,38 @@ public class RetrofitHelper {
             }
         }
         return iconFolder.delete();
+    }
+
+    public static void downloadWithOkHttp(Context context, String url, String iconName) {
+        final int DOWNLOAD_CHUNK_SIZE = 2048; //Same as Okio Segment.SIZE
+
+        try {
+            okhttp3.Request request = new okhttp3.Request.Builder().url(url).build();
+            OkHttpClient client = new OkHttpClient();
+
+            okhttp3.Response response = client.newCall(request).execute();
+            ResponseBody body = response.body();
+            BufferedSource source = body.source();
+            String fileName = (iconName.endsWith(".zip")) ? iconName : iconName + ".zip";
+            File zipFolder = new File(context.getFilesDir() + File.separator + PARASHOT_FOLDER);
+            zipFolder.mkdirs();
+            File tempZipfile = new File(zipFolder, fileName);
+            BufferedSink sink = Okio.buffer(Okio.sink(tempZipfile));
+            long totalRead = 0;
+            long read;
+            while ((read = source.read(sink.buffer(), DOWNLOAD_CHUNK_SIZE)) != -1) {
+                totalRead += read;
+            }
+            sink.writeAll(source);
+            sink.flush();
+            sink.close();
+            if (iconName.contains(".zip")) {
+                iconName = iconName.substring(0, iconName.indexOf(".zip"));
+            }
+            unzipIcon(context, tempZipfile, iconName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
