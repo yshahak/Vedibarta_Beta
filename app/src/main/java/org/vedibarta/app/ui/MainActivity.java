@@ -7,6 +7,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
@@ -38,8 +39,10 @@ public class MainActivity extends AppCompatActivity implements OnTrackChange {
     private static final String TAG = MainActivity.class.getSimpleName();
     @BindView(R.id.view_pager)
     ViewPager mViewPager;
-    @BindView(R.id.exo_player)
+    @BindView(R.id.simple_exo_player)
     SimpleExoPlayerView simpleExoPlayerView;
+    @BindView(R.id.par_title)
+    TextView parTitle;
     private Disposable titleSubscription;
 
     @Override
@@ -51,9 +54,7 @@ public class MainActivity extends AppCompatActivity implements OnTrackChange {
         simpleExoPlayerView.setPlayer(MyApplication.getPlayerManager().getPlayer());
         Observable<String> titleObservable = MyApplication.getPlayerManager().getTitleObservable();
         titleSubscription = titleObservable.subscribe(this::onTrackChanged);
-        Par current = ParashotHelper.parList.get(CalendarHelper.getWeekParashaIndex());
-        download(current);
-        showPlayWeekParashaDialog(current);
+
     }
 
     private void showPlayWeekParashaDialog(Par current) {
@@ -66,31 +67,35 @@ public class MainActivity extends AppCompatActivity implements OnTrackChange {
                 })
                 .setNegativeButton(android.R.string.cancel, null);
         builder.create().show();
-
-
     }
 
-        @Override
-        protected void onResume () {
-            super.onResume();
-            if (MyApplication.getPlayerManager().getPlayer().getPlaybackState() == ExoPlayer.STATE_READY) {
-                simpleExoPlayerView.setVisibility(View.VISIBLE);
-            } else {
-                simpleExoPlayerView.setVisibility(View.GONE);
-            }
-        }
-
-        @Override
-        protected void onDestroy () {
-            super.onDestroy();
-            titleSubscription.dispose();
-        }
-
-        @Override
-        public void onTrackChanged (String title){
-            getSupportActionBar().setTitle(title);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Par current = ParashotHelper.parList.get(CalendarHelper.getWeekParashaIndex());
+        download(current);
+        if (MyApplication.getPlayerManager().getPlayer().getPlaybackState() == ExoPlayer.STATE_READY) {
+            simpleExoPlayerView.setVisibility(View.VISIBLE);
             simpleExoPlayerView.showController();
+            MyApplication.getPlayerManager().omitTitle();
+        } else {
+            showPlayWeekParashaDialog(current);
+            simpleExoPlayerView.setVisibility(View.GONE);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        titleSubscription.dispose();
+    }
+
+    @Override
+    public void onTrackChanged(String title) {
+        parTitle.setText(title);
+        getSupportActionBar().setTitle(title);
+        simpleExoPlayerView.showController();
+    }
 
     public void download(Par par) {
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();

@@ -14,6 +14,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
@@ -39,6 +40,8 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
     SimpleExoPlayerView simpleExoPlayerView;
     @BindView(R.id.progress_bar)
     ProgressBar progressBar;
+    @BindView(R.id.par_title)
+    TextView parTitle;
     private Disposable titleSubscription;
     private Disposable loadingSubscription;
     private MediaBrowserCompat mediaBrowser;
@@ -170,7 +173,8 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
 
     @Override
     public void onTrackChanged(String title) {
-        getSupportActionBar().setTitle(title);
+//        getSupportActionBar().setTitle(title);
         simpleExoPlayerView.showController();
+        parTitle.setText(title);
     }
 }

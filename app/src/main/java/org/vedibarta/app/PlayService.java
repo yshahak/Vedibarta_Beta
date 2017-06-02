@@ -95,7 +95,12 @@ public class PlayService extends MediaBrowserServiceCompat {
         mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
         // Set an initial PlaybackState with ACTION_PLAY, so media buttons can start the player
         mStateBuilder = new PlaybackStateCompat.Builder()
-                .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS);
+                .setActions(PlaybackStateCompat.ACTION_PLAY
+                        | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                        | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                        | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                        | PlaybackStateCompat.ACTION_FAST_FORWARD
+                        | PlaybackStateCompat.ACTION_REWIND);
         mediaSession.setPlaybackState(mStateBuilder.build());
         mediaSession.setCallback(mMediaSessionCallback);
         Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
@@ -160,6 +165,18 @@ public class PlayService extends MediaBrowserServiceCompat {
             super.onSkipToPrevious();
             MyApplication.getPlayerManager().previous();
         }
+
+        @Override
+        public void onFastForward() {
+            super.onFastForward();
+            MyApplication.getPlayerManager().fastForward();
+        }
+
+        @Override
+        public void onRewind() {
+            super.onRewind();
+            MyApplication.getPlayerManager().rewind();
+        }
     };
 
 
@@ -186,9 +203,17 @@ class MediaStyleHelper {
                         android.R.drawable.ic_media_previous, context.getString(R.string.previous),
                         MediaButtonReceiver.buildMediaButtonPendingIntent(context,
                                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)))
+                .addAction(new NotificationCompat.Action(
+                        android.R.drawable.ic_media_rew, context.getString(R.string.rewind),
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(context,
+                                PlaybackStateCompat.ACTION_REWIND)))
                 .addAction(new NotificationCompat.Action(iconId, action,
                         MediaButtonReceiver.buildMediaButtonPendingIntent(context,
                                 PlaybackStateCompat.ACTION_PLAY_PAUSE)))
+                .addAction(new NotificationCompat.Action(
+                        android.R.drawable.ic_media_ff, context.getString(R.string.fast_forward),
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(context,
+                                PlaybackStateCompat.ACTION_FAST_FORWARD)))
                 .addAction(new NotificationCompat.Action(
                         android.R.drawable.ic_media_next, context.getString(R.string.next),
                         MediaButtonReceiver.buildMediaButtonPendingIntent(context,
