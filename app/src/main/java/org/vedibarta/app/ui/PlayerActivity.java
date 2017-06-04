@@ -1,7 +1,6 @@
 package org.vedibarta.app.ui;
 
 import android.content.ComponentName;
-import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.RemoteException;
@@ -10,16 +9,8 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
-import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
-
-import org.vedibarta.app.MyApplication;
 import org.vedibarta.app.OnTrackChange;
 import org.vedibarta.app.PlayService;
 import org.vedibarta.app.R;
@@ -27,25 +18,9 @@ import org.vedibarta.app.model.Par;
 
 import java.util.Random;
 
-import butterknife.BindView;
-import butterknife.ButterKnife;
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-
-import static org.vedibarta.app.MyApplication.getPlayerManager;
-
-public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
+public class PlayerActivity extends PlayableActivity implements OnTrackChange {
 
     public static final String EXTRA_PARASHA = "EXTRA_PARASHA";
-    @BindView(R.id.simple_exo_player)
-    SimpleExoPlayerView simpleExoPlayerView;
-    @BindView(R.id.progress_bar)
-    ProgressBar progressBar;
-    @BindView(R.id.par_title)
-    TextView parTitle;
-    private Disposable titleSubscription;
-    private Disposable loadingSubscription;
-    private MediaBrowserCompat mediaBrowser;
 
     private int[] intArtsArr = {R.drawable.comm1, R.drawable.comm2, R.drawable.comm3};
 
@@ -53,37 +28,22 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
-        ButterKnife.bind(this);
+        init();
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         //noinspection ConstantConditions
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        SimpleExoPlayer player = getPlayerManager().getPlayer();
-        simpleExoPlayerView.setPlayer(player);
         Par parasha = getIntent().getParcelableExtra(EXTRA_PARASHA);
         if (parasha != null) {
             getSupportActionBar().setTitle(String.format("פרשת '%s'", parasha.getParTitle()));
         } else {
             simpleExoPlayerView.showController();
         }
-        Observable<String> titleObservable = MyApplication.getPlayerManager().getTitleObservable();
-        titleSubscription = titleObservable.subscribe(this::onTrackChanged);
-        loadingSubscription = MyApplication.getPlayerManager().getLoadingObservable()
-                .subscribe(loading -> progressBar.setVisibility(loading ? View.VISIBLE : View.GONE));
         simpleExoPlayerView.setDefaultArtwork(BitmapFactory.decodeResource(getResources()
                 , intArtsArr[new Random().nextInt(intArtsArr.length)]));
-        setMediaBrowser();
     }
 
-
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-    }
-
-    private void setMediaBrowser() {
+    void setMediaBrowser() {
         mediaBrowser = new MediaBrowserCompat(this,
                 new ComponentName(this, PlayService.class),
                 mConnectionCallbacks,
@@ -125,7 +85,7 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
                 @Override
                 public void onConnected() {
                     // Get the token for the MediaSession
-                    MediaSessionCompat.Token token = mediaBrowser.getSessionToken();
+                    MediaSessionCompat.Token token = PlayerActivity.this.mediaBrowser.getSessionToken();
                     // Create a MediaControllerCompat
                     try {
                         MediaControllerCompat mediaController =
@@ -157,29 +117,6 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
                 }
             };
 
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        mediaBrowser.connect();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        // (see "stay in sync with the MediaSession")
-        if (MediaControllerCompat.getMediaController(this) != null) {
-            MediaControllerCompat.getMediaController(this).unregisterCallback(controllerCallback);
-        }
-        mediaBrowser.disconnect();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        titleSubscription.dispose();
-        loadingSubscription.dispose();
-    }
 
     @Override
     public void onTrackChanged(String title) {

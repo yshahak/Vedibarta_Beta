@@ -109,7 +109,7 @@ public class PlayerManager implements ExoPlayer.EventListener {
 
     public void pause() {
         player.setPlayWhenReady(false);
-        pauseObservable.onNext(getTrackTitle());
+//        pauseObservable.onNext(getTrackTitle());
     }
 
     public void stop() {
