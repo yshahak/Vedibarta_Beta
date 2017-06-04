@@ -8,7 +8,7 @@
     android:layout_height="match_parent"
     android:layout_width="match_parent"
     app:show_timeout="-1"
-    app:default_artwork="@drawable/comm1"
+    app:default_artwork="@android:color/darker_gray"
     app:controller_layout_id="@layout/custom_controller"
     app:hide_on_touch="false">
 

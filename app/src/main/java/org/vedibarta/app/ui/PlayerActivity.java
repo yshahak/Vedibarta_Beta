@@ -23,6 +23,7 @@ import org.vedibarta.app.MyApplication;
 import org.vedibarta.app.OnTrackChange;
 import org.vedibarta.app.PlayService;
 import org.vedibarta.app.R;
+import org.vedibarta.app.model.Par;
 
 import java.util.Random;
 
@@ -47,6 +48,7 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
     private MediaBrowserCompat mediaBrowser;
 
     private int[] intArtsArr = {R.drawable.comm1, R.drawable.comm2, R.drawable.comm3};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,16 +60,22 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         SimpleExoPlayer player = getPlayerManager().getPlayer();
         simpleExoPlayerView.setPlayer(player);
-//        Par parasha = getIntent().getParcelableExtra(EXTRA_PARASHA);
+        Par parasha = getIntent().getParcelableExtra(EXTRA_PARASHA);
+        if (parasha != null) {
+            getSupportActionBar().setTitle(String.format("פרשת '%s'", parasha.getParTitle()));
+        } else {
+            simpleExoPlayerView.showController();
+        }
         Observable<String> titleObservable = MyApplication.getPlayerManager().getTitleObservable();
         titleSubscription = titleObservable.subscribe(this::onTrackChanged);
-//        getSupportActionBar().setTitle(parasha.getParTitle());
         loadingSubscription = MyApplication.getPlayerManager().getLoadingObservable()
                 .subscribe(loading -> progressBar.setVisibility(loading ? View.VISIBLE : View.GONE));
         simpleExoPlayerView.setDefaultArtwork(BitmapFactory.decodeResource(getResources()
                 , intArtsArr[new Random().nextInt(intArtsArr.length)]));
         setMediaBrowser();
     }
+
+
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -124,11 +132,13 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
                                 new MediaControllerCompat(PlayerActivity.this, token);
                         MediaControllerCompat.setMediaController(PlayerActivity.this, mediaController);
                         setController();
-                        Bundle bundle = new Bundle();
-                        bundle.putParcelable(EXTRA_PARASHA, getIntent().getParcelableExtra(EXTRA_PARASHA));
-
-                        MediaControllerCompat.getMediaController(PlayerActivity.this)
-                                .getTransportControls().playFromMediaId("parashs", bundle);
+                        Par par = getIntent().getParcelableExtra(EXTRA_PARASHA);
+                        if (par != null) {
+                            Bundle bundle = new Bundle();
+                            bundle.putParcelable(EXTRA_PARASHA, par);
+                            MediaControllerCompat.getMediaController(PlayerActivity.this)
+                                    .getTransportControls().playFromMediaId("parasha", bundle);
+                        }
 
                     } catch (RemoteException e) {
                         e.printStackTrace();
@@ -173,7 +183,6 @@ public class PlayerActivity extends AppCompatActivity implements OnTrackChange {
 
     @Override
     public void onTrackChanged(String title) {
-//        getSupportActionBar().setTitle(title);
         simpleExoPlayerView.showController();
         parTitle.setText(title);
     }

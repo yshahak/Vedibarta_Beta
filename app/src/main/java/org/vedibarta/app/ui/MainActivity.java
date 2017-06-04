@@ -7,10 +7,12 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
+import com.jakewharton.rxbinding2.view.RxView;
 
 import org.vedibarta.app.MyApplication;
 import org.vedibarta.app.OnTrackChange;
@@ -43,6 +45,9 @@ public class MainActivity extends AppCompatActivity implements OnTrackChange {
     SimpleExoPlayerView simpleExoPlayerView;
     @BindView(R.id.par_title)
     TextView parTitle;
+    @BindView(R.id.btn_full_screen)
+    ImageView btnFullScreen;
+
     private Disposable titleSubscription;
 
     @Override
@@ -54,20 +59,21 @@ public class MainActivity extends AppCompatActivity implements OnTrackChange {
         simpleExoPlayerView.setPlayer(MyApplication.getPlayerManager().getPlayer());
         Observable<String> titleObservable = MyApplication.getPlayerManager().getTitleObservable();
         titleSubscription = titleObservable.subscribe(this::onTrackChanged);
-
+        btnFullScreen.setVisibility(View.VISIBLE);
+        RxView.clicks(btnFullScreen).subscribe(aVoid -> openPlayerActivity(null));
     }
 
     private void showPlayWeekParashaDialog(Par current) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
-                .setMessage(String.format("Start playing %s?", current.getParTitle()))
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                    Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
-                    intent.putExtra(EXTRA_PARASHA, current);
-                    startActivity(intent);
+                .setMessage(String.format("לנגן את פרשת %s?", current.getParTitle()))
+                .setPositiveButton("כן", (dialog, which) -> {
+                    openPlayerActivity(current);
                 })
-                .setNegativeButton(android.R.string.cancel, null);
+                .setNegativeButton("לא", null);
         builder.create().show();
     }
+
+
 
     @Override
     protected void onResume() {
@@ -82,6 +88,12 @@ public class MainActivity extends AppCompatActivity implements OnTrackChange {
             showPlayWeekParashaDialog(current);
             simpleExoPlayerView.setVisibility(View.GONE);
         }
+    }
+
+    private void openPlayerActivity(Par parasha) {
+        Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+        intent.putExtra(EXTRA_PARASHA, parasha);
+        startActivity(intent);
     }
 
     @Override
