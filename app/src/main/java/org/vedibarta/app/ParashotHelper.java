@@ -1,6 +1,7 @@
 package org.vedibarta.app;
 
 import android.content.Context;
+import android.util.Log;
 import android.util.SparseArray;
 
 import org.vedibarta.app.model.Par;
@@ -18,6 +19,7 @@ public class ParashotHelper {
     public static final String BASE_URL_ZIP = "http://www.vedibarta.org/Rashi_Tora_ZIP/";
     public static final String BASE_URL_MP3 = "http://www.vedibarta.org/Rashi_Tora_MP3/";
     public static final Object PARASHOT_FOLDER = "PARASHOT";
+    private static final String TAG = ParashotHelper.class.getSimpleName();
 
     static String dedication0 = "עדיין לא הוקדש", dedication5;
     public static List<Par> parList = new ArrayList<>();
@@ -1042,6 +1044,22 @@ public class ParashotHelper {
         if (!parFolder.exists()) parFolder.mkdirs();
         File file = new File(parFolder, track);
         return file.exists() && file.canRead() && file.length() > 0;
+    }
+
+    public static boolean deleteOldParashot(Context context, String parTitle) {
+        File parFolder = new File(context.getFilesDir() + File.separator + PARASHOT_FOLDER);
+        if (!parFolder.exists()) parFolder.mkdirs();
+        File[] folders = parFolder.listFiles(pathname -> !pathname.getAbsolutePath().contains(parTitle));
+        for (File file : folders){
+            File[] tracks = file.listFiles();
+            for (File track : tracks){
+                boolean trackDeleted = track.delete();
+                Log.d(TAG, "delete " +track.getName() + "=" + trackDeleted);
+            }
+            boolean folderDeleted = file.delete();
+            Log.d(TAG, "delete " + file.getName() + "=" + folderDeleted);
+        }
+        return true;
     }
 
     public static String getTrackSourceFromDevice(Context context, String parTitle, String track) {

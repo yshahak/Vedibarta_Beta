@@ -3,6 +3,7 @@ package org.vedibarta.app;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -24,17 +25,21 @@ import java.util.List;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 
-import static org.vedibarta.app.ui.PlayerActivity.EXTRA_PARASHA;
+import static org.vedibarta.app.ui.PlayableActivity.EXTRA_PARASHA;
 
 
-public class PlayService extends MediaBrowserServiceCompat {
+public class PlayService extends MediaBrowserServiceCompat implements AudioManager.OnAudioFocusChangeListener {
 
     private static final java.lang.String LOG_TAG = PlayService.class.getSimpleName();
     private static final String MY_MEDIA_ROOT_ID = "VEDIBARTA_ROOT";
+    public static final String MEDIA_ID_PARASHA = "parasha";
+    public static final String MEDIA_ID_LAST_SESSION = "last_session";
+
+
     private static final int NOTIFICATION_ID = 10;
     private MediaSessionCompat mediaSession;
     private PlaybackStateCompat.Builder mStateBuilder;
-    private Par par;
+//    private Par par;
     private Disposable titleSubscription, pauseSubscription;
 
     @Override
@@ -71,8 +76,14 @@ public class PlayService extends MediaBrowserServiceCompat {
         result.sendResult(null);
     }
 
+    private boolean successfullyRetrievedAudioFocus() {
+        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        int result = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+        return result == AudioManager.AUDIOFOCUS_GAIN;
+    }
+
     private void showPlayNotification(String title) {
-        NotificationCompat.Builder builder = MediaStyleHelper.from(this, mediaSession, par.getDescription()
+        NotificationCompat.Builder builder = MediaStyleHelper.from(this, mediaSession, MyApplication.getPlayerManager().getPar().getDescription()
                 , android.R.drawable.ic_media_pause, getString(R.string.pause), title);
         if( builder == null ) {
             return;
@@ -81,7 +92,7 @@ public class PlayService extends MediaBrowserServiceCompat {
     }
 
     private void showPausedNotification(String title) {
-        NotificationCompat.Builder builder = MediaStyleHelper.from(this, mediaSession, par.getDescription()
+        NotificationCompat.Builder builder = MediaStyleHelper.from(this, mediaSession, MyApplication.getPlayerManager().getPar().getDescription()
                 , android.R.drawable.ic_media_play, getString(R.string.play), title);
         if( builder == null ) {
             return;
@@ -122,15 +133,24 @@ public class PlayService extends MediaBrowserServiceCompat {
         @Override
         public void onPlayFromMediaId(String mediaId, Bundle extras) {
             super.onPlayFromMediaId(mediaId, extras);
-            extras.setClassLoader(Par.class.getClassLoader());
-            Par par = extras.getParcelable(EXTRA_PARASHA);
-            if (par == null || par.equals(PlayService.this.par)) {
-                return;
+            switch (mediaId){
+                case MEDIA_ID_LAST_SESSION:
+                    MyApplication.getPlayerManager().restoreLastSession(getApplicationContext());
+                    break;
+                case MEDIA_ID_PARASHA:
+                    extras.setClassLoader(Par.class.getClassLoader());
+                    Par par = extras.getParcelable(EXTRA_PARASHA);
+                    if (par == null || par.equals(MyApplication.getPlayerManager().getPar())) {
+                        return;
+                    }
+                    MyApplication.getPlayerManager().preparePlayer(getApplicationContext(), par);
+                    break;
             }
             mediaSession.setActive(true);
-            PlayService.this.par = par;
-            MyApplication.getPlayerManager().preparePlayer(getApplicationContext(), par);
             startService(new Intent(PlayService.this, PlayService.class));
+            if( !successfullyRetrievedAudioFocus() ) {
+                return;
+            }
             onPlay();
         }
 
@@ -152,6 +172,8 @@ public class PlayService extends MediaBrowserServiceCompat {
         public void onStop() {
             super.onStop();
             MyApplication.getPlayerManager().stop();
+            AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            audioManager.abandonAudioFocus(PlayService.this);
         }
 
         @Override
@@ -180,6 +202,28 @@ public class PlayService extends MediaBrowserServiceCompat {
     };
 
 
+    @Override
+    public void onAudioFocusChange(int focusChange) {
+        switch( focusChange ) {
+            case AudioManager.AUDIOFOCUS_LOSS: {
+                mMediaSessionCallback.onStop();
+                break;
+            }
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT: {
+                mMediaSessionCallback.onPause();
+                break;
+            }
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK: {
+                MyApplication.getPlayerManager().getPlayer().setVolume(0.5f);
+                break;
+            }
+            case AudioManager.AUDIOFOCUS_GAIN: {
+                mMediaSessionCallback.onPlay();
+                MyApplication.getPlayerManager().getPlayer().setVolume(1);
+                break;
+            }
+        }
+    }
 }
 class MediaStyleHelper {
     /**

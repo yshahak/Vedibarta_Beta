@@ -30,6 +30,8 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
+import net.alexandroid.shpref.ShPref;
+
 import org.vedibarta.app.model.Par;
 import org.vedibarta.app.model.Track;
 
@@ -44,10 +46,14 @@ import io.reactivex.subjects.PublishSubject;
  */
 
 @SuppressWarnings("WeakerAccess")
+@SuppressLint("DefaultLocale")
 public class PlayerManager implements ExoPlayer.EventListener {
 
     private static final int FAST_FORWRD = 10;
     private static final int REWIND = 10;
+    private static final String KEY_LAST_PAR_INDEX = "keyLastParIndex";
+    private static final String KEY_LAST_PAR_TRACK = "keyLAstParTrack";
+    private static final String KEY_LAST_PAR_POSITION = "keyLastParPosition";
 
     private MediaBrowserCompat mediaBrowser;
 
@@ -78,7 +84,22 @@ public class PlayerManager implements ExoPlayer.EventListener {
         player.addListener(this);
     }
 
+    public void restoreLastSession(Context context) {
+        Par par = ParashotHelper.parList.get(ShPref.getInt(KEY_LAST_PAR_INDEX));
+        int lastTrack =  ShPref.getInt(KEY_LAST_PAR_TRACK);
+        long lastPosition = ShPref.getLong(KEY_LAST_PAR_POSITION);
+        initSession(context, par);
+        player.seekTo(lastTrack, lastPosition);
+        play();
+    }
+
     public Observable<String> preparePlayer(Context context, Par par) {
+        initSession(context, par);
+//        play();
+        return titleObservable;
+    }
+
+    private void initSession(Context context, Par par) {
         this.par = par;
         // Measures bandwidth during playback. Can be null if not required.
         List<MediaSource> sources = new ArrayList<>();
@@ -99,8 +120,6 @@ public class PlayerManager implements ExoPlayer.EventListener {
         ConcatenatingMediaSource concatenatedSource =
                 new ConcatenatingMediaSource(sources.toArray(new MediaSource[sources.size()]));
         player.prepare(concatenatedSource);
-        play();
-        return titleObservable;
     }
 
     public void play() {
@@ -132,6 +151,8 @@ public class PlayerManager implements ExoPlayer.EventListener {
         int windowIndex = player.getCurrentWindowIndex();
         if (windowIndex < timeline.getWindowCount() - 1) {
             seekTo(windowIndex + 1, C.TIME_UNSET);
+        } else {
+            ShPref.put(KEY_LAST_PAR_INDEX, -1);
         }
     }
 
@@ -166,9 +187,6 @@ public class PlayerManager implements ExoPlayer.EventListener {
 
     @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-        for (int i = 0; i < trackSelections.length; i++) {
-            Log.d("TAG", trackSelections.toString());
-        }
         titleObservable.onNext(getTrackTitle());
     }
 
@@ -185,17 +203,37 @@ public class PlayerManager implements ExoPlayer.EventListener {
                 loadingObservable.onNext(true);
                 break;
             case ExoPlayer.STATE_READY:
-                if (playWhenReady){
+                if (playWhenReady) {
                     titleObservable.onNext(getTrackTitle());
                 } else {
+                    saveLastState();
                     pauseObservable.onNext(getTrackTitle());
                 }
                 loadingObservable.onNext(false);
+                break;
+            case ExoPlayer.STATE_ENDED:
+                ShPref.put(KEY_LAST_PAR_INDEX, -1);
                 break;
             default:
                 loadingObservable.onNext(false);
         }
         Log.d("TAG", "onPlayerStateChanged=" + playbackState);
+    }
+
+    private void saveLastState() {
+        ShPref.put(KEY_LAST_PAR_INDEX, ParashotHelper.parList.indexOf(par));
+        ShPref.put(KEY_LAST_PAR_TRACK, player.getCurrentWindowIndex());
+        ShPref.put(KEY_LAST_PAR_POSITION, player.getCurrentPosition());
+    }
+
+    public int getLastSessionIndex(){
+        return ShPref.getInt(KEY_LAST_PAR_INDEX, -1);
+    }
+
+    public String getLastSessionTitle(){
+        Par par = ParashotHelper.parList.get(ShPref.getInt(KEY_LAST_PAR_INDEX));
+        int lastTrack =  ShPref.getInt(KEY_LAST_PAR_TRACK);
+        return String.format("?לנגן פרשת %s %d/%d", par.getParTitle(), lastTrack + 1, par.getTrackList().length);
     }
 
     @Override
@@ -213,7 +251,6 @@ public class PlayerManager implements ExoPlayer.EventListener {
 
     }
 
-    @SuppressLint("DefaultLocale")
     private String getTrackTitle() {
         return String.format("%s %d/%d", par.getParTitle(), player.getCurrentWindowIndex() + 1, par.getTrackList().length);
     }
@@ -241,4 +278,6 @@ public class PlayerManager implements ExoPlayer.EventListener {
     public void omitTitle() {
         titleObservable.onNext(getTrackTitle());
     }
+
+
 }

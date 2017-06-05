@@ -121,4 +121,9 @@ public class Par implements Parcelable {
     public String toString() {
         return "title=" + getParTitle();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof Par && parTitle.equals(((Par) obj).parTitle);
+    }
 }
