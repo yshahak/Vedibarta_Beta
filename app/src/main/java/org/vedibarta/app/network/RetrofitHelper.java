@@ -1,4 +1,4 @@
-package org.vedibarta.app;
+package org.vedibarta.app.network;
 
 import android.content.Context;
 import android.net.Uri;
@@ -19,8 +19,12 @@ import okhttp3.ResponseBody;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
+import retrofit2.Call;
 import retrofit2.Response;
+import retrofit2.http.Field;
 import retrofit2.http.GET;
+import retrofit2.http.Headers;
+import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Streaming;
 
@@ -32,6 +36,21 @@ import static org.vedibarta.app.ParashotHelper.PARASHOT_FOLDER;
 
 public class RetrofitHelper {
     private static final String TAG = RetrofitHelper.class.getSimpleName();
+
+    public final static String BASE_URL_VEDIBARTA = "http://www.vedibarta.org/";
+
+    public interface SendFeedbackService{
+        @POST("guestbook/save.asp")
+        @Headers({
+                "Proxy-Connection: keep-alive",
+                "Cache-Control", "max-age=0",
+                "Accept-Encoding", "gzip,deflate",
+                "Content-Type", "application/x-www-form-urlencoded;charset=UTF-8"
+        })
+        Call<ResponseBody> sendFeedback(@Field("NAME") String name,
+                                        @Field("EMAIL") String email,
+                                        @Field("MESSAGE") String message);
+    }
 
     public interface ApiService {
         @Streaming
