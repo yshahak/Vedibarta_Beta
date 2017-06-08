@@ -10,6 +10,8 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import net.alexandroid.shpref.MyLog;
+
 import org.vedibarta.app.R;
 import org.vedibarta.app.network.DownloadManager;
 import org.vedibarta.app.network.Utils;
@@ -17,12 +19,15 @@ import org.vedibarta.app.network.Utils;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
+import okhttp3.ResponseBody;
 
 import static org.vedibarta.app.network.RetrofitHelper.BASE_URL_VEDIBARTA;
 
 /**
  * Created by Yaakov Shahak
- on 07/06/17.
+ * on 07/06/17.
  */
 
 @SuppressWarnings("unused")
@@ -39,19 +44,19 @@ public class FragmentFeedback extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View mainView = inflater.inflate(R.layout.feedback2, container, false);
-        ButterKnife.bind(mainView);
+        ButterKnife.bind(this, mainView);
         return mainView;
     }
 
     @OnClick(R.id.link_vedibarta)
-    void openVedibartaSite() {
+    void openVedibartaSite(View btn) {
         Uri uri = Uri.parse(BASE_URL_VEDIBARTA);
         Intent intent = new Intent(Intent.ACTION_VIEW, uri);
         startActivity(intent);
     }
 
     @OnClick(R.id.button_send_feedback)
-    void sendFeedback() {
+    void sendFeedback(View btn) {
         if (Utils.isConnected(getContext())) {
             String name = EditTextName.getText().toString();
             String mail = EditTextEmail.getText().toString();
@@ -62,15 +67,26 @@ public class FragmentFeedback extends Fragment {
             } else if (!Utils.isValidEmail(mail))
                 Toast.makeText(getContext(), getResources().getString(R.string.email_not_valid), Toast.LENGTH_SHORT).show();
             else {
-                DownloadManager.sendFeedback(getContext(), name, mail, "נשלח מתוך אפליקצית 'ודיברת' לאנדרואיד:    " + feedback);
-                Toast.makeText(getContext(), getString(R.string.comment_success),
-                        Toast.LENGTH_SHORT).show();
-                EditTextName.setText("");
-                EditTextEmail.setText("");
-                EditTextFeedbackBody.setText("");
-
+                DownloadManager.sendFeedback(name, mail, "נשלח מתוך אפליקצית 'ודיברת' לאנדרואיד:    " + feedback)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe((ResponseBody res) -> {
+                            MyLog.d("result=" + res.string());
+                            Toast.makeText(getContext(), getString(R.string.comment_success),
+                                    Toast.LENGTH_SHORT).show();
+                        }, Throwable::printStackTrace);
             }
+            EditTextName.setText("");
+            EditTextEmail.setText("");
+            EditTextFeedbackBody.setText("");
+
         } else
-            Toast.makeText(getContext(), getResources().getString(R.string.comment_no_network), Toast.LENGTH_SHORT).show();
+            Toast.makeText(
+
+                    getContext(), getResources().
+
+                            getString(R.string.comment_no_network), Toast.LENGTH_SHORT).
+
+                    show();
     }
 }

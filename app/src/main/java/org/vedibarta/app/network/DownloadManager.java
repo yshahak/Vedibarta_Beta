@@ -8,11 +8,9 @@ import org.vedibarta.app.ParashotHelper;
 import org.vedibarta.app.model.Par;
 import org.vedibarta.app.model.Track;
 
+import io.reactivex.Observable;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 
@@ -47,26 +45,14 @@ public class DownloadManager {
         ParashotHelper.deleteOldParashot(context, par.getParTitle());
     }
 
-    public static void sendFeedback(Context context, String name, String mail, String text){
-        if (Utils.isConnected(context)) {
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl(BASE_URL_VEDIBARTA)
-                    .build();
+    public static Observable<ResponseBody> sendFeedback(String name, String mail, String text) {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL_VEDIBARTA)
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+                .build();
 
-            RetrofitHelper.SendFeedbackService service = retrofit.create(RetrofitHelper.SendFeedbackService.class);
-            Call<ResponseBody> call = service.sendFeedback(name, mail, text);
-            call.enqueue(new Callback<ResponseBody>() {
-                @Override
-                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                    MyLog.d("result = " + response.isSuccessful());
-                    MyLog.d("response = " + response.message());
-                }
+        RetrofitHelper.SendFeedbackService service = retrofit.create(RetrofitHelper.SendFeedbackService.class);
+        return service.sendFeedback(name, mail, text);
 
-                @Override
-                public void onFailure(Call<ResponseBody> call, Throwable t) {
-
-                }
-            });
-        }
     }
 }

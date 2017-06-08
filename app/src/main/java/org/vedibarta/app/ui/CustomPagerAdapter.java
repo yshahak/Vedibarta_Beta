@@ -26,6 +26,17 @@ public class CustomPagerAdapter extends FragmentPagerAdapter {
     }
 
     @Override
+    public CharSequence getPageTitle(int position) {
+        switch (position){
+            case 0:
+                return "פרשות";
+            case 1:
+                return "משוב";
+        }
+        return null;
+    }
+
+    @Override
     public int getCount() {
         return 2;
     }

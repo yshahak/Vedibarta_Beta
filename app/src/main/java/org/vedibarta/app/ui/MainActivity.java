@@ -1,14 +1,19 @@
 package org.vedibarta.app.ui;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 import com.google.android.exoplayer2.ExoPlayer;
 import com.jakewharton.rxbinding2.view.RxView;
+
+import net.alexandroid.shpref.ShPref;
 
 import org.vedibarta.app.MyApplication;
 import org.vedibarta.app.ParashotHelper;
@@ -18,9 +23,11 @@ import org.vedibarta.app.model.Par;
 
 import butterknife.BindView;
 
-public class MainActivity extends PlayableActivity{
+public class MainActivity extends PlayableActivity {
 
-    private static final String TAG = MainActivity.class.getSimpleName();
+    public static final String KEY_ASK_LAST_PLAY = "keyAskLastPlay";
+    public static final String KEY_PLAY_WEEK_PAR = "keyPlayWeekPar";
+
     @BindView(R.id.view_pager)
     ViewPager mViewPager;
     @BindView(R.id.par_title)
@@ -40,7 +47,9 @@ public class MainActivity extends PlayableActivity{
             simpleExoPlayerView.showController();
             MyApplication.getPlayerManager().omitTitle();
         } else {
-            showPlayDialog(current);
+            if (savedInstanceState == null) {
+                showPlayDialog(current);
+            }
             simpleExoPlayerView.setVisibility(View.GONE);
         }
     }
@@ -51,29 +60,39 @@ public class MainActivity extends PlayableActivity{
     }
 
     private void showPlayDialog(Par current) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        String content;
         int lastSession = MyApplication.getPlayerManager().getLastSessionIndex();
-        if (lastSession != -1){
-            builder.setTitle("שחזור שמיעה אחרונה");
-            content = MyApplication.getPlayerManager().getLastSessionTitle();
+        if (lastSession != -1 && ShPref.getBoolean(KEY_ASK_LAST_PLAY, true)) {
+            showLastPlayDialog();
         } else {
-            content = String.format("לנגן את פרשת %s?", current.getParTitle());
+            showCurrentParDialog(current);
         }
-        builder
-                .setMessage(content)
-                .setPositiveButton("כן", (dialog, which) -> {
-                    if (lastSession != -1) {
-                        openLastSession(ParashotHelper.parList.get(lastSession));
-                    } else {
-                        openPlayerActivity(current);
-                    }
-                })
-                .setNegativeButton("לא", null);
+    }
+
+    @SuppressLint("InflateParams")
+    private void showLastPlayDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        int lastSession = MyApplication.getPlayerManager().getLastSessionIndex();
+        CheckBox checkBox = (CheckBox) LayoutInflater.from(this).inflate(R.layout.check_box_dont_ask, null);
+        builder.setTitle("שחזור שמיעה אחרונה")
+                .setView(checkBox)
+                .setMessage(MyApplication.getPlayerManager().getLastSessionTitle())
+                .setPositiveButton("כן", (dialog, which) -> openLastSession(ParashotHelper.parList.get(lastSession)))
+                .setNegativeButton("לא", (dialog, which) -> ShPref.put(KEY_ASK_LAST_PLAY, !checkBox.isChecked()));
         builder.create().show();
     }
 
-
+    private void showCurrentParDialog(Par current) {
+        if (ShPref.getBoolean(KEY_PLAY_WEEK_PAR, true)) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            CheckBox checkBox = (CheckBox) LayoutInflater.from(this).inflate(R.layout.check_box_dont_ask, null);
+            builder.setTitle("ניגון פרשת השבוע")
+                    .setView(checkBox)
+                    .setMessage(String.format("לנגן את פרשת %s?", current.getParTitle()))
+                    .setPositiveButton("כן", (dialog, which) -> openPlayerActivity(current))
+                    .setNegativeButton("לא", (dialog, which) -> ShPref.put(KEY_PLAY_WEEK_PAR, !checkBox.isChecked()));
+            builder.create().show();
+        }
+    }
 
     @Override
     protected void onRestart() {
@@ -89,6 +108,7 @@ public class MainActivity extends PlayableActivity{
 
     private void openPlayerActivity(Par parasha) {
         Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+        intent.putExtra(EXTRA_PARASHA, parasha);
         startActivity(intent);
     }
 

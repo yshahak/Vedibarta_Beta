@@ -4,6 +4,8 @@ import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
+import com.crashlytics.android.Crashlytics;
+import io.fabric.sdk.android.Fabric;
 import net.alexandroid.shpref.MyLog;
 import net.alexandroid.shpref.ShPref;
 
@@ -25,6 +27,7 @@ public class MyApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        Fabric.with(this, new Crashlytics());
         ShPref.init(this, ShPref.APPLY);
         MyLog.setTag("ZAQ");
         myApplication = this;

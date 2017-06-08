@@ -1,57 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" >
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/TextViewTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:layout_gravity="center"
-        android:text="@string/mashov"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
-
-    <EditText
-        android:id="@+id/EditTextName"
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/name"
-        android:inputType="textPersonName"/>
+        android:orientation="vertical">
 
-    <EditText
-        android:id="@+id/EditTextEmail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="@string/mailAdress"
-        android:inputType="textEmailAddress" />
+        <TextView
+            android:id="@+id/TextViewTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="8dp"
+            android:text="@string/mashov"
+            android:textAppearance="?android:attr/textAppearanceLarge" />
 
-    <EditText
-        android:id="@+id/EditTextFeedbackBody"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="@string/insert_comment"
-        android:inputType="textMultiLine"
-        android:lines="5" />
+        <EditText
+            android:id="@+id/EditTextName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/name"
+            android:inputType="textPersonName" />
 
-    <Button
-        android:id="@+id/button_send_feedback"
-        android:layout_width="204dp"
-        android:layout_height="wrap_content"
-        android:text="@string/feedbackSite" />
+        <EditText
+            android:id="@+id/EditTextEmail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/mailAdress"
+            android:inputType="textEmailAddress" />
 
-    <View
-        android:layout_width="1dp"
-        android:layout_height="0dp"
-        android:layout_weight="1"/>
+        <EditText
+            android:id="@+id/EditTextFeedbackBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/insert_comment"
+            android:inputType="textMultiLine"
+            android:lines="5" />
 
-    <Button
-        android:id="@+id/link_vedibarta"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:layout_gravity="center"
-        android:text="@string/Kishur_vedibarta" />
+        <Button
+            android:id="@+id/button_send_feedback"
+            android:layout_width="204dp"
+            android:layout_height="wrap_content"
+            android:text="@string/feedbackSite" />
 
-</LinearLayout>
+        <View
+            android:layout_width="1dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/link_vedibarta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="8dp"
+            android:text="@string/Kishur_vedibarta" />
+    </LinearLayout>
+
+</ScrollView>
