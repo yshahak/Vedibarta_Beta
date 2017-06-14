@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationManagerCompat;
@@ -21,6 +22,7 @@ import android.support.v7.app.NotificationCompat;
 import org.vedibarta.app.model.Par;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -34,13 +36,14 @@ public class PlayService extends MediaBrowserServiceCompat implements AudioManag
     private static final String MY_MEDIA_ROOT_ID = "VEDIBARTA_ROOT";
     public static final String MEDIA_ID_PARASHA = "parasha";
     public static final String MEDIA_ID_LAST_SESSION = "last_session";
-
-
     private static final int NOTIFICATION_ID = 10;
+    private final long TIME_OUT_SESSION = TimeUnit.MINUTES.toMillis(1);
+
     private MediaSessionCompat mediaSession;
     private PlaybackStateCompat.Builder mStateBuilder;
-//    private Par par;
     private Disposable titleSubscription, pauseSubscription;
+    private Handler handler;
+    private boolean focusPause;
 
     @Override
     public void onCreate() {
@@ -49,7 +52,12 @@ public class PlayService extends MediaBrowserServiceCompat implements AudioManag
         Observable<String> trackTitleObservable = MyApplication.getPlayerManager().getTitleObservable();
         Observable<String> pauseObservable = MyApplication.getPlayerManager().getPauseObservable();
         titleSubscription = trackTitleObservable.subscribe(this::showPlayNotification);
-        pauseSubscription = pauseObservable.subscribe(this::showPausedNotification);
+        pauseSubscription = pauseObservable.subscribe(s -> {
+            showPausedNotification(s);
+            setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+            handler.postDelayed(killRunnable, TIME_OUT_SESSION);
+        });
+        handler = new Handler();
     }
 
     @Override
@@ -159,21 +167,26 @@ public class PlayService extends MediaBrowserServiceCompat implements AudioManag
             super.onPlay();
             setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
             MyApplication.getPlayerManager().play();
+            handler.removeCallbacks(killRunnable);
+            focusPause = false;
         }
 
         @Override
         public void onPause() {
             super.onPause();
-            setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
             MyApplication.getPlayerManager().pause();
+            setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+            handler.postDelayed(killRunnable, TIME_OUT_SESSION);
         }
 
         @Override
         public void onStop() {
             super.onStop();
+            setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
             MyApplication.getPlayerManager().stop();
             AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
             audioManager.abandonAudioFocus(PlayService.this);
+            handler.postDelayed(killRunnable, TIME_OUT_SESSION);
         }
 
         @Override
@@ -204,26 +217,44 @@ public class PlayService extends MediaBrowserServiceCompat implements AudioManag
 
     @Override
     public void onAudioFocusChange(int focusChange) {
+        int state = mediaSession.getController().getPlaybackState().getState();
         switch( focusChange ) {
             case AudioManager.AUDIOFOCUS_LOSS: {
-                mMediaSessionCallback.onStop();
+                if (state == PlaybackStateCompat.STATE_PLAYING) {
+                    focusPause = true;
+                    mMediaSessionCallback.onStop();
+                }
                 break;
             }
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT: {
-                mMediaSessionCallback.onPause();
+                if (state == PlaybackStateCompat.STATE_PLAYING) {
+                    focusPause = true;
+                    mMediaSessionCallback.onPause();
+                }
                 break;
             }
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK: {
-                MyApplication.getPlayerManager().getPlayer().setVolume(0.5f);
+                if (state == PlaybackStateCompat.STATE_PLAYING) {
+                    MyApplication.getPlayerManager().getPlayer().setVolume(0.5f);
+                }
                 break;
             }
             case AudioManager.AUDIOFOCUS_GAIN: {
-                mMediaSessionCallback.onPlay();
-                MyApplication.getPlayerManager().getPlayer().setVolume(1);
+                if (focusPause && state == PlaybackStateCompat.STATE_PAUSED) {
+                    mMediaSessionCallback.onPlay();
+                } else if (state == PlaybackStateCompat.STATE_PLAYING){
+                    MyApplication.getPlayerManager().getPlayer().setVolume(1);
+                }
                 break;
             }
         }
     }
+
+    private Runnable killRunnable = () -> {
+//        mMediaSessionCallback.onStop();
+        stopSelf();
+    };
+
 }
 class MediaStyleHelper {
     /**

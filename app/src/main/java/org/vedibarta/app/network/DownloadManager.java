@@ -39,7 +39,7 @@ public class DownloadManager {
                 service.download(track.getUrl())
                         .flatMap(resp -> RetrofitHelper.saveFile(context, resp, par.getParTitle(), track.getUrl()))
                         .subscribeOn(Schedulers.io())
-                        .subscribe(file -> MyLog.d(file.getAbsolutePath()));
+                        .subscribe(file -> MyLog.d(file.getAbsolutePath()), Throwable::printStackTrace);
             }
         }
         ParashotHelper.deleteOldParashot(context, par.getParTitle());
